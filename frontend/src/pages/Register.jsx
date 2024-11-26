@@ -13,6 +13,7 @@ const Register = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,7 +28,40 @@ const Register = () => {
       return;
     }
 
-    navigate('/login');
+    try {
+      setLoading(true);
+      setError('');
+
+      const userData = {
+        email: formData.email,
+        password: formData.password,
+        nombreUsuario: formData.username,
+        fotoPerfil: null
+      };
+
+      const response = await fetch('http://localhost:3001/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error en el registro');
+      }
+
+      if (data.success) {
+        alert('Usuario registrado exitosamente');
+        navigate('/login');
+      }
+    } catch (error) {
+      setError(error.message || 'Error al registrar usuario');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -94,9 +128,12 @@ const Register = () => {
           </div>
           <button
             type="submit"
-            className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-lg transition-all duration-300"
+            disabled={loading}
+            className={`w-full bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-lg transition-all duration-300 ${
+              loading ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            Registrarse
+            {loading ? 'Registrando...' : 'Registrarse'}
           </button>
         </form>
         <p className="text-gray-400 text-center mt-4">

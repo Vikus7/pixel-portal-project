@@ -10,14 +10,47 @@ const Login = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.username === 'admin' && formData.password === '12345678') {
-      localStorage.setItem('isAuthenticated', 'true');
-      navigate('/home');
-    } else {
-      setError('Credenciales inválidas');
+
+    if (!formData.username || !formData.password) {
+      setError('Todos los campos son obligatorios');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+
+      const response = await fetch('http://localhost:3001/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          password: formData.password
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error en el inicio de sesión');
+      }
+
+      if (data.success) {
+        // Guardar datos del usuario
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('isAuthenticated', 'true');
+        navigate('/home');
+      }
+    } catch (error) {
+      setError(error.message || 'Credenciales inválidas');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -38,6 +71,7 @@ const Login = () => {
               className="w-full bg-gray-700 text-white p-3 rounded-lg focus:ring-2 focus:ring-cyan-400 outline-none"
               value={formData.username}
               onChange={(e) => setFormData({...formData, username: e.target.value})}
+              disabled={loading}
             />
           </div>
           <div className="relative">
@@ -47,6 +81,7 @@ const Login = () => {
               className="w-full bg-gray-700 text-white p-3 rounded-lg focus:ring-2 focus:ring-cyan-400 outline-none"
               value={formData.password}
               onChange={(e) => setFormData({...formData, password: e.target.value})}
+              disabled={loading}
             />
             <button
               type="button"
@@ -58,9 +93,12 @@ const Login = () => {
           </div>
           <button
             type="submit"
-            className="w-full bg-cyan-500 hover:bg-cyan-600 text-white py-3 rounded-lg transition-all duration-300"
+            disabled={loading}
+            className={`w-full bg-cyan-500 hover:bg-cyan-600 text-white py-3 rounded-lg transition-all duration-300 ${
+              loading ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            Ingresar
+            {loading ? 'Iniciando sesión...' : 'Ingresar'}
           </button>
         </form>
         <p className="text-gray-400 text-center mt-4">
@@ -68,6 +106,7 @@ const Login = () => {
           <button
             onClick={() => navigate('/register')}
             className="text-cyan-400 hover:text-cyan-300"
+            disabled={loading}
           >
             Regístrate
           </button>
