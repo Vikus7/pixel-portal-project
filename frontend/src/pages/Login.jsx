@@ -12,6 +12,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -57,7 +58,7 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-gradient-to-r from-violet-900 to-purple-800 flex items-center justify-center px-4">
       <div className="bg-gray-800 bg-opacity-50 p-8 rounded-xl backdrop-blur-sm w-full max-w-md">
-        <h2 className="text-3xl font-bold text-white mb-6 text-center">Iniciar Sesión</h2>
+        <h2 className="text-3xl font-bold text-white mb-6 text-center">Iniciar sesión</h2>
         {error && (
           <div className="bg-red-500 bg-opacity-20 text-red-200 p-3 rounded-lg mb-4">
             {error}
@@ -111,6 +112,15 @@ const Login = () => {
             Regístrate
           </button>
         </p>
+        <p className="text-gray-400 text-center mt-2">
+          <button
+            onClick={() => navigate('/reset-password')}
+            className="text-cyan-400 hover:text-cyan-300"
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
+        </p>
+
       </div>
     </div>
   );

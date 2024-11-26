@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { LandingPage, Login, Register, Home } from './components/index';
+import { LandingPage, Login, Register, ResetPassword, Home } from './components/index';
 
 // Componente para proteger rutas
 const ProtectedRoute = ({ children }) => {
@@ -19,6 +19,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route 
           path="/home" 
           element={

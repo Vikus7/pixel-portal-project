@@ -20,7 +20,7 @@ const LandingPage = () => {
               onClick={() => navigate('/login')}
               className="bg-cyan-500 hover:bg-cyan-600 text-white px-8 py-3 rounded-lg transition-all duration-300 transform hover:scale-105"
             >
-              Iniciar Sesión
+              Iniciar sesión
             </button>
             <button
               onClick={() => navigate('/register')}
@@ -33,7 +33,7 @@ const LandingPage = () => {
 
         <div className="grid md:grid-cols-3 gap-8 mt-16">
           <FeatureCard
-            title="Organiza tu Colección"
+            title="Organiza tu colección"
             description="Gestiona tu biblioteca de juegos de manera eficiente"
             icon="🎮"
           />
@@ -43,7 +43,7 @@ const LandingPage = () => {
             icon="💻"
           />
           <FeatureCard
-            title="Comunidad Gaming"
+            title="Comunidad gaming"
             description="Conecta con otros gamers"
             icon="🌟"
           />

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, Plus, Search } from 'lucide-react';
 import GameCard from '../components/GameCard';
 import GameFormModal from '../components/GameFormModal';
+import { MessageCircle } from 'lucide-react';
+import ChatWindow from '../components/ChatWindow';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -11,6 +13,7 @@ const Home = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState('asc');
   const [editingGame, setEditingGame] = useState(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   
   // Obtener datos del usuario del localStorage
   const userData = JSON.parse(localStorage.getItem('user'));
@@ -107,7 +110,7 @@ const Home = () => {
             className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors duration-300"
           >
             <Plus size={20} />
-            <span>Agregar Juego</span>
+            <span>Agregar juego</span>
           </button>
         </div>
 
@@ -134,6 +137,18 @@ const Home = () => {
         onClose={handleCloseModal}
         onSubmit={handleAddGame}
         initialData={editingGame}
+      />
+
+      <button
+        onClick={() => setIsChatOpen(true)}
+        className="fixed bottom-8 right-8 bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-full shadow-lg transition-all duration-300 transform hover:scale-110 z-50"
+      >
+        <MessageCircle size={24} />
+      </button>
+
+      <ChatWindow
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
       />
     </div>
   );
