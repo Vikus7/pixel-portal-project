@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Plus, Search } from 'lucide-react';
+import { LogOut, Plus, Search, User } from 'lucide-react';
 import GameCard from '../components/GameCard';
 import GameFormModal from '../components/GameFormModal';
 import { MessageCircle } from 'lucide-react';
 import ChatWindow from '../components/ChatWindow';
+import UserAvatar from '../components/UserAvatar';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -14,12 +15,44 @@ const Home = () => {
   const [sortOrder, setSortOrder] = useState('asc');
   const [editingGame, setEditingGame] = useState(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [user, setUser] = useState(null);
   
   // Obtener datos del usuario del localStorage
-  const userData = JSON.parse(localStorage.getItem('user'));
-  const userName = userData?.nombreUsuario || 'Usuario';
+  
+  useEffect(() => {
+    const checkAuth = () => {
+      const isAuth = localStorage.getItem('isAuthenticated');
+      if (!isAuth) {
+        navigate('/login');
+        return;
+      }
 
-  // Agregamos la función handleLogout que faltaba
+      const userData = JSON.parse(localStorage.getItem('user'));
+      if (!userData) {
+        navigate('/login');
+        return;
+      }
+      
+      setUser(userData);
+
+      // TODO: En un futuro, aquí se hará la llamada al backend para obtener los datos actualizados del usuario
+      // const fetchUserData = async () => {
+      //   try {
+      //     const response = await fetch(`http://localhost:3001/api/users/${userData.uid}`);
+      //     const data = await response.json();
+      //     if (data.success) {
+      //       setUser(data.user);
+      //     }
+      //   } catch (error) {
+      //     console.error('Error fetching user data:', error);
+      //   }
+      // };
+      // fetchUserData();
+    };
+
+    checkAuth();
+  }, [navigate]);
+
   const handleLogout = () => {
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('user');
@@ -67,12 +100,19 @@ const Home = () => {
     <div className="min-h-screen bg-gradient-to-r from-violet-900 to-purple-800">
       <header className="bg-gray-900 bg-opacity-50 p-4">
         <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-white">
-            ¡Bienvenido, {userName}!
-          </h1>
+          <div className="flex items-center space-x-4">
+            <UserAvatar 
+              src={user?.fotoPerfil} 
+              alt={user?.nombreUsuario}
+              size="medium"
+            />
+            <h1 className="text-3xl font-bold text-white">
+              ¡Bienvenido, {user?.nombreUsuario || 'Usuario'}!
+            </h1>
+          </div>
           <button
             onClick={handleLogout}
-            className="flex items-center space-x-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors duration-300"
+            className="flex items-center space-x-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-all duration-300"
           >
             <LogOut size={20} />
             <span>Cerrar sesión</span>

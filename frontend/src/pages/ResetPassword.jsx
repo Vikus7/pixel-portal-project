@@ -23,24 +23,36 @@ const ResetPassword = () => {
       setLoading(true);
       setError('');
 
-      // TODO: Verificación con Firebase
-      // const response = await firebase.auth().verifyEmail(email);
-      // if (response.exists) {
-      //   setStep(2);
-      // } else {
-      //   setError('El correo no está registrado');
-      // }
+      // Verificar si el email existe en Firebase
+      //TODO Aqui se llama al back para comprobar que el email este gestionado en firebase
+      //Se puede reemplazar el llamado por una conexion correcta y existente
+      const response = await fetch('http://localhost:3001/api/auth/verify-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email })
+      });
 
-      // Simulación temporal
-      setStep(2);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al verificar el correo');
+      }
+
+      if (data.exists) {
+        setStep(2);
+      } else {
+        setError('El correo no está registrado');
+      }
     } catch (error) {
-      setError('Error al verificar el correo');
+      setError(error.message || 'Error al verificar el correo');
     } finally {
       setLoading(false);
     }
-  };
+};
 
-  const handlePasswordReset = async (e) => {
+const handlePasswordReset = async (e) => {
     e.preventDefault();
     
     if (password !== confirmPassword) {
@@ -48,27 +60,46 @@ const ResetPassword = () => {
       return;
     }
 
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+
     try {
       setLoading(true);
       setError('');
 
-      // TODO: Actualización en Firebase
-      // await firebase.auth().updatePassword(email, password);
-      
+      const response = await fetch('http://localhost:3001/api/auth/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          newPassword: password
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al actualizar la contraseña');
+      }
+
       alert('Contraseña actualizada exitosamente');
       navigate('/login');
     } catch (error) {
-      setError('Error al actualizar la contraseña');
+      setError(error.message || 'Error al actualizar la contraseña');
     } finally {
       setLoading(false);
     }
-  };
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-violet-900 to-purple-800 flex items-center justify-center px-4">
       <div className="bg-gray-800 bg-opacity-50 p-8 rounded-xl backdrop-blur-sm w-full max-w-md">
         <h2 className="text-3xl font-bold text-white mb-6 text-center">
-          Recuperar Contraseña
+          Restablecer contraseña
         </h2>
         
         {error && (
@@ -143,7 +174,7 @@ const ResetPassword = () => {
                 loading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
-              {loading ? 'Actualizando...' : 'Actualizar Contraseña'}
+              {loading ? 'Actualizando...' : 'Actualizar contraseña'}
             </button>
           </form>
         )}

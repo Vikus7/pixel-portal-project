@@ -1,22 +1,37 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, X } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import UserAvatar from './UserAvatar';
 
 const ChatWindow = ({ isOpen, onClose }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef(null);
+  const user = JSON.parse(localStorage.getItem('user'));
   
-  // Efecto para scroll automático
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  // TODO: Implementar conexión WebSocket
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // TODO: Implementar WebSocket aca es ws o socket.io dependera del backend
   // const ws = new WebSocket('ws://localhost:3001');
+  // ws.onopen = () => {
+  //   console.log('Conectado al servidor de chat');
+  //   // Enviar información del usuario al conectarse
+  //   ws.send(JSON.stringify({
+  //     type: 'USER_CONNECTED',
+  //     user: {
+  //       id: user.uid,
+  //       name: user.nombreUsuario
+  //     }
+  //   }));
+  // };
+  // 
   // ws.onmessage = (event) => {
   //   const message = JSON.parse(event.data);
   //   setMessages(prev => [...prev, message]);
@@ -26,15 +41,24 @@ const ChatWindow = ({ isOpen, onClose }) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
 
-    // Simulación de envío de mensaje (reemplazar con WebSocket)
-    const message = {
+    const messageData = {
       id: Date.now(),
       text: newMessage,
-      sender: 'user',
+      sender: {
+        id: user.uid,
+        name: user.nombreUsuario,
+        avatar: user.fotoPerfil
+      },
       timestamp: new Date().toISOString()
     };
 
-    setMessages(prev => [...prev, message]);
+    // TODO: Enviar por WebSocket
+    // ws.send(JSON.stringify({
+    //   type: 'CHAT_MESSAGE',
+    //   message: messageData
+    // }));
+
+    setMessages(prev => [...prev, messageData]);
     setNewMessage('');
   };
 
@@ -58,11 +82,24 @@ const ChatWindow = ({ isOpen, onClose }) => {
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`flex flex-col ${
+              message.sender.id === user.uid ? 'items-end' : 'items-start'
+            }`}
           >
+            <div className="flex items-center space-x-2 mb-1">
+              <UserAvatar 
+                src={message.sender.avatar} 
+                alt={message.sender.name}
+                size="small"
+              />
+              <span className="text-sm text-gray-400">{message.sender.name}</span>
+              <span className="text-xs text-gray-500">
+                {format(new Date(message.timestamp), 'HH:mm', { locale: es })}
+              </span>
+            </div>
             <div
               className={`max-w-[80%] p-3 rounded-lg ${
-                message.sender === 'user'
+                message.sender.id === user.uid
                   ? 'bg-purple-600 text-white rounded-br-none'
                   : 'bg-gray-700 text-white rounded-bl-none'
               }`}

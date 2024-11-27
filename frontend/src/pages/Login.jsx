@@ -43,8 +43,14 @@ const Login = () => {
       }
 
       if (data.success) {
-        // Guardar datos del usuario
-        localStorage.setItem('user', JSON.stringify(data.user));
+        // Guardar datos completos del usuario
+        const userData = {
+          uid: data.user.uid,
+          nombreUsuario: data.user.displayName,
+          email: data.user.email,
+          fotoPerfil: data.user.photoURL || '/default-avatar.png' // Imagen por defecto
+        };
+        localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('isAuthenticated', 'true');
         navigate('/home');
       }
@@ -53,7 +59,7 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
-  };
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-violet-900 to-purple-800 flex items-center justify-center px-4">
