@@ -14,4 +14,18 @@ const getUserGames = async (req, res) => {
   }
 };
 
-module.exports = { getUserGames };
+const getUserId = async (req, res) => {
+  const { nombreUsuario, email } = req.body;
+
+  try {
+    const userId = await gameAccess.getUserIdFromDB(nombreUsuario, email);
+    if (!userId) {
+      return res.status(404).json({ message: 'No se encontró el usuario.' });
+    }
+    res.json({ userId });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener el ID del usuario.' });
+  }
+}
+
+module.exports = { getUserGames , getUserId };

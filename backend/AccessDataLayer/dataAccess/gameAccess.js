@@ -29,4 +29,19 @@ const getGamesByUser = async (userId) => {
   }
 };
 
-module.exports = { getGamesByUser };
+const getUserIdFromDB = async (nombreUsuario, email) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT id_usuario FROM usuario WHERE nombre_usuario = ? AND email = ? LIMIT 1`,
+      [nombreUsuario, email]
+    );
+    return rows[0]?.id_usuario || null; // Devuelve el ID o null si no se encuentra
+  } catch (error) {
+    console.error('Error al consultar el ID del usuario:', error);
+    throw error;
+  }
+};
+
+
+module.exports = { getGamesByUser,getUserIdFromDB };
+
