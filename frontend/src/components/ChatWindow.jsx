@@ -3,13 +3,71 @@ import { Send, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import UserAvatar from './UserAvatar';
+import { io } from 'socket.io-client';
 
 const ChatWindow = ({ isOpen, onClose }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  const [socket, setSocket] = useState(null);
   const messagesEndRef = useRef(null);
   const user = JSON.parse(localStorage.getItem('user'));
-  
+
+  useEffect(() => {
+    if (isOpen && !socket) {
+      // Conectar al WebSocket cuando se abre el chat
+      const newSocket = io('http://localhost:3001');
+      setSocket(newSocket);
+
+      // Unirse al chat con los datos del usuario
+      newSocket.emit('joinChat', {
+        username: user.displayName || user.nombreUsuario,
+        uid: user.uid
+      });
+
+      // Escuchar nuevos mensajes
+      newSocket.on('newMessage', (messageData) => {
+        const formattedMessage = {
+          id: Date.now(),
+          text: messageData.message,
+          sender: {
+            id: messageData.uid,
+            name: messageData.username,
+            avatar: messageData.avatar
+          },
+          timestamp: messageData.timestamp
+        };
+        setMessages(prev => [...prev, formattedMessage]);
+      });
+
+      // Escuchar cuando un usuario se une
+      newSocket.on('userJoined', (data) => {
+        const systemMessage = {
+          id: Date.now(),
+          text: data.message,
+          system: true,
+          timestamp: data.timestamp
+        };
+        setMessages(prev => [...prev, systemMessage]);
+      });
+
+      // Escuchar cuando un usuario se va
+      newSocket.on('userLeft', (data) => {
+        const systemMessage = {
+          id: Date.now(),
+          text: data.message,
+          system: true,
+          timestamp: data.timestamp
+        };
+        setMessages(prev => [...prev, systemMessage]);
+      });
+
+      return () => {
+        newSocket.close();
+        setSocket(null);
+      };
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -18,47 +76,12 @@ const ChatWindow = ({ isOpen, onClose }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // TODO: Implementar WebSocket aca es ws o socket.io dependera del backend
-  // const ws = new WebSocket('ws://localhost:3001');
-  // ws.onopen = () => {
-  //   console.log('Conectado al servidor de chat');
-  //   // Enviar información del usuario al conectarse
-  //   ws.send(JSON.stringify({
-  //     type: 'USER_CONNECTED',
-  //     user: {
-  //       id: user.uid,
-  //       name: user.nombreUsuario
-  //     }
-  //   }));
-  // };
-  // 
-  // ws.onmessage = (event) => {
-  //   const message = JSON.parse(event.data);
-  //   setMessages(prev => [...prev, message]);
-  // };
-
   const handleSendMessage = (e) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !socket) return;
 
-    const messageData = {
-      id: Date.now(),
-      text: newMessage,
-      sender: {
-        id: user.uid,
-        name: user.nombreUsuario,
-        avatar: user.fotoPerfil
-      },
-      timestamp: new Date().toISOString()
-    };
-
-    // TODO: Enviar por WebSocket
-    // ws.send(JSON.stringify({
-    //   type: 'CHAT_MESSAGE',
-    //   message: messageData
-    // }));
-
-    setMessages(prev => [...prev, messageData]);
+    // Emitir mensaje al servidor
+    socket.emit('globalMessage', newMessage);
     setNewMessage('');
   };
 
@@ -83,29 +106,41 @@ const ChatWindow = ({ isOpen, onClose }) => {
           <div
             key={message.id}
             className={`flex flex-col ${
-              message.sender.id === user.uid ? 'items-end' : 'items-start'
+              message.system 
+                ? 'items-center' 
+                : message.sender.id === user.uid 
+                  ? 'items-end' 
+                  : 'items-start'
             }`}
           >
-            <div className="flex items-center space-x-2 mb-1">
-              <UserAvatar 
-                src={message.sender.avatar} 
-                alt={message.sender.name}
-                size="small"
-              />
-              <span className="text-sm text-gray-400">{message.sender.name}</span>
-              <span className="text-xs text-gray-500">
-                {format(new Date(message.timestamp), 'HH:mm', { locale: es })}
-              </span>
-            </div>
-            <div
-              className={`max-w-[80%] p-3 rounded-lg ${
-                message.sender.id === user.uid
-                  ? 'bg-purple-600 text-white rounded-br-none'
-                  : 'bg-gray-700 text-white rounded-bl-none'
-              }`}
-            >
-              {message.text}
-            </div>
+            {message.system ? (
+              <div className="text-sm text-gray-400 italic">
+                {message.text}
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center space-x-2 mb-1">
+                  <UserAvatar 
+                    src={message.sender.avatar} 
+                    alt={message.sender.name}
+                    size="small"
+                  />
+                  <span className="text-sm text-gray-400">{message.sender.name}</span>
+                  <span className="text-xs text-gray-500">
+                    {format(new Date(message.timestamp), 'HH:mm', { locale: es })}
+                  </span>
+                </div>
+                <div
+                  className={`max-w-[80%] p-3 rounded-lg ${
+                    message.sender.id === user.uid
+                      ? 'bg-purple-600 text-white rounded-br-none'
+                      : 'bg-gray-700 text-white rounded-bl-none'
+                  }`}
+                >
+                  {message.text}
+                </div>
+              </>
+            )}
           </div>
         ))}
         <div ref={messagesEndRef} />
@@ -123,7 +158,8 @@ const ChatWindow = ({ isOpen, onClose }) => {
           />
           <button
             type="submit"
-            className="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-lg transition-colors"
+            disabled={!socket}
+            className="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-lg transition-colors disabled:opacity-50"
           >
             <Send size={20} />
           </button>

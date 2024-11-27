@@ -24,7 +24,7 @@ app.use(express.json());
 // Rutas HTTP
 app.use('/api/auth', authRoutes);
 
-// Manejo de WebSocket
+// Configuración de WebSocket
 chatHandler(io);
 
 server.listen(port, () => {
