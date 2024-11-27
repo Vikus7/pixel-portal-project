@@ -11,6 +11,7 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uid, setUid] = useState(''); // Agregamos estado para almacenar el uid
 
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
@@ -23,9 +24,7 @@ const ResetPassword = () => {
       setLoading(true);
       setError('');
 
-      // Verificar si el email existe en Firebase
-      //TODO Aqui se llama al back para comprobar que el email este gestionado en firebase
-      //Se puede reemplazar el llamado por una conexion correcta y existente
+      // Cambiamos la ruta a verify-email
       const response = await fetch('http://localhost:3001/api/auth/verify-email', {
         method: 'POST',
         headers: {
@@ -40,21 +39,25 @@ const ResetPassword = () => {
         throw new Error(data.message || 'Error al verificar el correo');
       }
 
-      if (data.exists) {
+      if (data.success) {
+        setUid(data.uid); // Guardamos el uid que nos devuelve el backend
         setStep(2);
-      } else {
-        setError('El correo no está registrado');
       }
     } catch (error) {
       setError(error.message || 'Error al verificar el correo');
     } finally {
       setLoading(false);
     }
-};
+  };
 
-const handlePasswordReset = async (e) => {
+  const handlePasswordReset = async (e) => {
     e.preventDefault();
-    
+
+    if (!password || !confirmPassword) {
+      setError('Todos los campos son obligatorios');
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError('Las contraseñas no coinciden');
       return;
@@ -69,13 +72,13 @@ const handlePasswordReset = async (e) => {
       setLoading(true);
       setError('');
 
-      const response = await fetch('http://localhost:3001/api/auth/reset-password', {
+      const response = await fetch('http://localhost:3001/api/auth/update-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email,
+          uid: uid, // Enviamos el uid en lugar del email
           newPassword: password
         })
       });
@@ -93,7 +96,9 @@ const handlePasswordReset = async (e) => {
     } finally {
       setLoading(false);
     }
-};
+  };
+
+  // El resto del JSX se mantiene igual...
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-violet-900 to-purple-800 flex items-center justify-center px-4">
