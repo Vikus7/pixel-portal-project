@@ -31,11 +31,15 @@ const getGamesByUser = async (userId) => {
 
 const getUserIdFromDB = async (nombreUsuario, email) => {
   try {
+    console.log('Parámetros recibidos para la consulta:', { nombreUsuario, email }); // Depuración
+
     const [rows] = await pool.query(
-      `SELECT id_usuario FROM usuario WHERE nombre_usuario = ? AND email = ? LIMIT 1`,
+      `SELECT id FROM usuario WHERE nombre_usuario = ? AND email = ? LIMIT 1`,
       [nombreUsuario, email]
     );
-    return rows[0]?.id_usuario || null; // Devuelve el ID o null si no se encuentra
+
+    console.log('Resultado de la consulta:', rows); // Depuración
+    return rows.length > 0 ? rows[0].id : null; // Devuelve el ID o null si no se encuentra
   } catch (error) {
     console.error('Error al consultar el ID del usuario:', error);
     throw error;
