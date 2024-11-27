@@ -18,7 +18,7 @@ const Home = () => {
   const [user, setUser] = useState(null);
   
   // Obtener datos del usuario del localStorage
-  
+  // En el Home.jsx
   useEffect(() => {
     const checkAuth = () => {
       const isAuth = localStorage.getItem('isAuthenticated');
@@ -35,23 +35,99 @@ const Home = () => {
       
       setUser(userData);
 
-      // TODO: En un futuro, aquí se hará la llamada al backend para obtener los datos actualizados del usuario
-      // const fetchUserData = async () => {
-      //   try {
-      //     const response = await fetch(`http://localhost:3001/api/users/${userData.uid}`);
-      //     const data = await response.json();
-      //     if (data.success) {
-      //       setUser(data.user);
-      //     }
-      //   } catch (error) {
-      //     console.error('Error fetching user data:', error);
-      //   }
-      // };
-      // fetchUserData();
+      // Cargar juegos del usuario
+      const fetchUserGames = async () => {
+        try {
+          // Primero obtener el ID del usuario de la DB
+          const userIdResponse = await fetch('http://localhost:3000/api/users/id', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              nombreUsuario: userData.displayName,
+              email: userData.email
+            })
+          });
+          
+          const userIdData = await userIdResponse.json();
+          
+          if (userIdData.userId) {
+            // Luego obtener los juegos
+            const gamesResponse = await fetch(`http://localhost:3000/api/users/${userIdData.userId}/games`);
+            const gamesData = await gamesResponse.json();
+            
+            if (Array.isArray(gamesData)) {
+              const formattedGames = gamesData.map(game => ({
+                id: game.juego_id,
+                nombre: game.juego_nombre,
+                portada: game.juego_portada,
+                descripcion: game.juego_descripcion,
+                desarrollador: game.juego_desarrollador,
+                plataformas: game.juego_plataformas.split(',') // Asumiendo que las plataformas están en string separado por comas
+              }));
+              setGames(formattedGames);
+            }
+          }
+        } catch (error) {
+          console.error('Error al cargar los juegos:', error);
+        }
+      };
+
+      fetchUserGames();
     };
 
     checkAuth();
   }, [navigate]);
+
+  const handleAddGame = async (gameData) => {
+    try {
+      if (editingGame) {
+        // Lógica de edición existente
+        setGames(games.map(game => 
+          game.id === editingGame.id 
+            ? { ...gameData, id: game.id }
+            : game
+        ));
+      } else {
+        // Crear nuevo juego
+        const response = await fetch('http://localhost:3000/api/games', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...gameData,
+            userId: user.uid
+          })
+        });
+
+        const newGame = await response.json();
+        
+        if (newGame.id) {
+          setGames(prev => [...prev, newGame]);
+        }
+      }
+      setEditingGame(null);
+    } catch (error) {
+      console.error('Error al guardar el juego:', error);
+    }
+  };
+
+  const handleDeleteGame = async (gameId) => {
+    try {
+        const response = await fetch(`http://localhost:3000/api/games/${gameId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            setGames(games.filter(game => game.id !== gameId));
+        }
+    } catch (error) {
+        console.error('Error al eliminar el juego:', error);
+    }
+  };
+
 
   const handleLogout = () => {
     localStorage.removeItem('isAuthenticated');
@@ -59,18 +135,6 @@ const Home = () => {
     navigate('/');
   };
 
-  const handleAddGame = (gameData) => {
-    if (editingGame) {
-      setGames(games.map(game => 
-        game.id === editingGame.id 
-          ? { ...gameData, id: game.id }
-          : game
-      ));
-      setEditingGame(null);
-    } else {
-      setGames([...games, { ...gameData, id: Date.now() }]);
-    }
-  };
 
   const handleEditGame = (game) => {
     setEditingGame(game);
@@ -82,9 +146,6 @@ const Home = () => {
     setEditingGame(null);
   };
 
-  const handleDeleteGame = (gameId) => {
-    setGames(games.filter(game => game.id !== gameId));
-  };
 
   const filteredGames = games
     .filter(game => 

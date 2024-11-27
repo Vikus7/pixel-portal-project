@@ -12,4 +12,14 @@ const pool = mysql.createPool({
   queueLimit: 0
 });
 
+// Verificar conexión
+pool.getConnection()
+    .then(connection => {
+        console.log('Base de datos conectada exitosamente');
+        connection.release();
+    })
+    .catch(error => {
+        console.error('Error al conectar con la base de datos:', error);
+    });
+
 module.exports = pool;
