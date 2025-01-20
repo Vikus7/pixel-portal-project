@@ -35,38 +35,53 @@ const GameFormModal = ({ isOpen, onClose, onSubmit, initialData = null }) => {
     if (initialData) {
       setFormData({
         ...initialData,
-        customPlatform: '',
-        // Mantener la imagen existente si hay una
-        imagen: initialData.imagen
+        plataformas: initialData.plataformas.split(',').map(p => p.trim())
       });
     } else {
       setFormData({
         nombre: '',
-        imagen: null,
+        portada: null,
         descripcion: '',
         desarrollador: '',
-        plataformas: [],
-        customPlatform: ''
+        plataformas: []
       });
     }
   }, [initialData]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const validationErrors = {};
     
-    if (!formData.nombre) validationErrors.nombre = 'El nombre es requerido';
-    if (!formData.descripcion) validationErrors.descripcion = 'La descripción es requerida';
-    if (!formData.desarrollador) validationErrors.desarrollador = 'El desarrollador es requerido';
-    if (formData.plataformas.length === 0) validationErrors.plataformas = 'Selecciona al menos una plataforma';
-
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
+    // Validar datos requeridos
+    if (!formData.nombre || !formData.descripcion || !formData.desarrollador || !formData.plataformas.length) {
+      alert('Por favor completa todos los campos requeridos');
       return;
     }
+  
+    const gameData = {
+      nombre: formData.nombre,
+      descripcion: formData.descripcion,
+      desarrollador: formData.desarrollador,
+      plataformas: formData.plataformas.join(','),
+      portada: formData.imagen || null
+    };
+  
+    console.log('Datos del juego a enviar:', gameData);
+    
+    try {
+      await onSubmit(gameData);
+    } catch (error) {
+      console.error('Error al enviar formulario:', error);
+    }
+  };
 
-    onSubmit(formData);
-    onClose();
+  // Función auxiliar para convertir imagen a base64
+  const convertImageToBase64 = (file) => {
+      return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = error => reject(error);
+      });
   };
 
   const handlePlatformChange = (platform) => {

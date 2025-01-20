@@ -1,32 +1,23 @@
 const express = require('express');
 const cors = require('cors');
-const http = require('http');
-const socketIO = require('socket.io');
-require('dotenv').config();
 const authRoutes = require('./routes/authRoutes');
-const chatHandler = require('./socket/chatHandler');
+const gameRoutes = require('./routes/gameRoutes');
 
 const app = express();
-const server = http.createServer(app);
-const io = socketIO(server, {
-    cors: {
-        origin: "http://localhost:5173", // URL de tu frontend
-        methods: ["GET", "POST"]
-    }
-});
 
-const port = process.env.PORT || 3001;
-
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Rutas HTTP
+// Middleware para logs
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`, req.body);
+  next();
+});
+
 app.use('/api/auth', authRoutes);
+app.use('/api/games', gameRoutes);
 
-// Configuración de WebSocket
-chatHandler(io);
-
-server.listen(port, () => {
-    console.log(`Servidor corriendo en el puerto ${port}`);
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`Servidor de Negocios escuchando en puerto ${PORT}`);
 });

@@ -30,17 +30,13 @@ const registerController = {
             try {
                 // Crear usuario en la base de datos MySQL
                 const dbResponse = await axios.post('http://localhost:3000/api/users', {
-                    nombre_usuario: nombreUsuario,  // Cambiado para coincidir con el formato de la DB
+                    nombre_usuario: nombreUsuario,
                     email: email,
                     foto_perfil: fotoPerfil || null
                 });
-            
-                console.log('Respuesta de la base de datos:', dbResponse.data);
-            
-                if (!dbResponse.data.success) {
-                    throw new Error(dbResponse.data.message || 'Error al crear usuario en la base de datos');
-                }
-            
+
+                const userId = dbResponse.data.userId;
+
                 res.status(201).json({
                     success: true,
                     message: 'Usuario registrado exitosamente',
@@ -48,22 +44,15 @@ const registerController = {
                         uid: userRecord.uid,
                         email: userRecord.email,
                         displayName: nombreUsuario,
+                        dbId: userId,
                         fotoPerfil: fotoPerfil || null
                     }
                 });
-            
+
             } catch (dbError) {
-                console.error('Error completo al crear en DB:', dbError.response?.data || dbError);
-                
                 // Si falla la creación en DB, eliminar el usuario de Firebase
-                if (userRecord?.uid) {
-                    try {
-                        await admin.auth().deleteUser(userRecord.uid);
-                    } catch (deleteError) {
-                        console.error('Error al eliminar usuario de Firebase:', deleteError);
-                    }
-                }
-                throw new Error('Error al crear usuario en la base de datos: ' + (dbError.response?.data?.message || dbError.message));
+                await admin.auth().deleteUser(userRecord.uid);
+                throw new Error('Error al crear usuario en la base de datos');
             }
 
         } catch (error) {

@@ -17,117 +17,142 @@ const Home = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [user, setUser] = useState(null);
   
-  // Obtener datos del usuario del localStorage
-  // En el Home.jsx
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
+      console.log('Iniciando checkAuth');
       const isAuth = localStorage.getItem('isAuthenticated');
       if (!isAuth) {
         navigate('/login');
         return;
       }
-
+  
       const userData = JSON.parse(localStorage.getItem('user'));
+      console.log('userData del localStorage:', userData);
+      
       if (!userData) {
         navigate('/login');
         return;
       }
       
       setUser(userData);
-
-      // Cargar juegos del usuario
-      const fetchUserGames = async () => {
-        try {
-          // Primero obtener el ID del usuario de la DB
-          const userIdResponse = await fetch('http://localhost:3000/api/users/id', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              nombreUsuario: userData.displayName,
-              email: userData.email
-            })
-          });
-          
-          const userIdData = await userIdResponse.json();
-          
-          if (userIdData.userId) {
-            // Luego obtener los juegos
-            const gamesResponse = await fetch(`http://localhost:3000/api/users/${userIdData.userId}/games`);
-            const gamesData = await gamesResponse.json();
-            
-            if (Array.isArray(gamesData)) {
-              const formattedGames = gamesData.map(game => ({
-                id: game.juego_id,
-                nombre: game.juego_nombre,
-                portada: game.juego_portada,
-                descripcion: game.juego_descripcion,
-                desarrollador: game.juego_desarrollador,
-                plataformas: game.juego_plataformas.split(',') // Asumiendo que las plataformas están en string separado por comas
-              }));
-              setGames(formattedGames);
-            }
-          }
-        } catch (error) {
-          console.error('Error al cargar los juegos:', error);
-        }
-      };
-
-      fetchUserGames();
-    };
-
-    checkAuth();
-  }, [navigate]);
-
-  const handleAddGame = async (gameData) => {
-    try {
-      if (editingGame) {
-        // Lógica de edición existente
-        setGames(games.map(game => 
-          game.id === editingGame.id 
-            ? { ...gameData, id: game.id }
-            : game
-        ));
-      } else {
-        // Crear nuevo juego
-        const response = await fetch('http://localhost:3000/api/games', {
+  
+      try {
+        const response = await fetch('http://localhost:3000/api/users/id', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            ...gameData,
-            userId: user.uid
+            nombreUsuario: userData.nombreUsuario || userData.displayName,
+            email: userData.email
           })
         });
-
-        const newGame = await response.json();
-        
-        if (newGame.id) {
-          setGames(prev => [...prev, newGame]);
+  
+        const data = await response.json();
+        console.log('Respuesta de ID:', data);
+  
+        if (data.userId) {
+          const updatedUserData = { ...userData, dbId: data.userId };
+          console.log('Actualizando userData con:', updatedUserData);
+          localStorage.setItem('user', JSON.stringify(updatedUserData));
+          setUser(updatedUserData);
+          await loadUserGames(data.userId);
         }
+      } catch (error) {
+        console.error('Error al obtener ID:', error);
       }
-      setEditingGame(null);
+    };
+  
+    checkAuth();
+  }, [navigate]);
+
+  // Función para cargar juegos
+  const loadUserGames = async (userId) => {
+    try {
+      console.log('Intentando cargar juegos para usuario:', userId);
+      const response = await fetch(`http://localhost:3001/api/games/user/${userId}`);
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar juegos');
+      }
+  
+      const data = await response.json();
+      console.log('Datos de juegos recibidos:', data);
+  
+      // Verificar la estructura exacta de los datos
+      const gamesArray = data.games?.games || data.games || [];
+      if (Array.isArray(gamesArray)) {
+        console.log('Juegos a mostrar:', gamesArray);
+        setGames(gamesArray);
+      } else {
+        console.error('Estructura de datos inesperada:', data);
+      }
     } catch (error) {
-      console.error('Error al guardar el juego:', error);
+      console.error('Error detallado al cargar juegos:', error);
+    }
+  };
+  
+
+  // Función para agregar juego
+  const handleAddGame = async (gameData) => {
+    try {
+      if (!user?.dbId) {
+        throw new Error('No hay ID de usuario disponible');
+      }
+  
+      console.log('Datos del juego a enviar:', gameData);
+  
+      const response = await fetch('http://localhost:3001/api/games', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre: gameData.nombre,
+          descripcion: gameData.descripcion,
+          desarrollador: gameData.desarrollador,
+          plataformas: Array.isArray(gameData.plataformas) ? gameData.plataformas.join(',') : gameData.plataformas,
+          portada: gameData.portada || null,
+          userId: user.dbId
+        })
+      });
+  
+      const data = await response.json();
+      console.log('Respuesta del servidor:', data);
+  
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al crear el juego');
+      }
+  
+      // Importante: usar el user.dbId que ya tenemos
+      if (data.success) {
+        await loadUserGames(user.dbId);
+        setIsModalOpen(false);
+      }
+    } catch (error) {
+      console.error('Error al agregar juego:', error);
+      alert(error.message || 'Error al crear el juego');
     }
   };
 
+  const handleEditGame = async (game) => {
+    setEditingGame(game);
+    setIsModalOpen(true);
+  };
+  
   const handleDeleteGame = async (gameId) => {
     try {
-        const response = await fetch(`http://localhost:3000/api/games/${gameId}`, {
-            method: 'DELETE'
-        });
-
-        if (response.ok) {
-            setGames(games.filter(game => game.id !== gameId));
-        }
+      const response = await fetch(`http://localhost:3001/api/games/${user.dbId}/${gameId}`, {
+        method: 'DELETE'
+      });
+  
+      if (response.ok) {
+        await loadUserGames(); // Recargar la lista después de eliminar
+      }
     } catch (error) {
-        console.error('Error al eliminar el juego:', error);
+      console.error('Error al eliminar juego:', error);
     }
   };
-
 
   const handleLogout = () => {
     localStorage.removeItem('isAuthenticated');
@@ -135,11 +160,6 @@ const Home = () => {
     navigate('/');
   };
 
-
-  const handleEditGame = (game) => {
-    setEditingGame(game);
-    setIsModalOpen(true);
-  };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);

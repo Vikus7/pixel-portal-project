@@ -45,15 +45,17 @@ const Login = () => {
       if (data.success) {
         // Guardar datos completos del usuario
         const userData = {
-          uid: data.user.uid,
-          nombreUsuario: data.user.displayName,
-          email: data.user.email,
-          fotoPerfil: data.user.photoURL || '/default-avatar.png' // Imagen por defecto
+            uid: data.user.uid,
+            nombreUsuario: data.user.displayName,
+            email: data.user.email,
+            fotoPerfil: data.user.photoURL || '/default-avatar.png',
+            dbId: data.user.dbId  // Agregar el ID de la base de datos
         };
         localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('isAuthenticated', 'true');
         navigate('/home');
-      }
+    }
+    
     } catch (error) {
       setError(error.message || 'Credenciales inválidas');
     } finally {

@@ -1,51 +1,103 @@
-const pool = require('../config/db');
+const db = require('../config/db');
 
-const getGamesByUser = async (userId) => {
-  try {
-    const [rows] = await pool.query(
-      `SELECT 
-          usuario.id AS usuario_id,
-          usuario.nombre_usuario,
-          juego.id AS juego_id,
-          juego.nombre AS juego_nombre,
-          juego.portada AS juego_portada,
-          juego.descripcion AS juego_descripcion,
-          juego.desarrollador AS juego_desarrollador,
-          juego.plataformas AS juego_plataformas
-       FROM 
-          listas_juegos
-       JOIN 
-          usuario ON listas_juegos.usuario_id = usuario.id
-       JOIN 
-          juego ON listas_juegos.juego_id = juego.id
-       WHERE 
-          usuario.id = ?`,
+const gameAccess = {
+  getGamesByUser: async (userId) => {
+    const [games] = await db.query(
+      `SELECT j.* 
+       FROM biypgq3fbzz9f3p2sfgs.juego j
+       INNER JOIN biypgq3fbzz9f3p2sfgs.listas_juegos lj ON j.id = lj.juego_id
+       WHERE lj.usuario_id = ?`,
       [userId]
     );
-    return rows;
-  } catch (error) {
-    console.error('Error al obtener los juegos del usuario:', error);
-    throw error;
+    return games;
+  },
+
+  createGame: async (gameData) => {
+    try {
+      console.log('Creando juego con datos:', gameData);
+      
+      // Validar datos antes de la inserción
+      if (!gameData.nombre || !gameData.descripcion || !gameData.desarrollador || !gameData.plataformas) {
+        throw new Error('Faltan datos requeridos para crear el juego');
+      }
+  
+      const [result] = await db.query(
+        'INSERT INTO biypgq3fbzz9f3p2sfgs.juego (nombre, portada, descripcion, desarrollador, plataformas) VALUES (?, ?, ?, ?, ?)',
+        [
+          gameData.nombre,
+          gameData.portada || null,
+          gameData.descripcion,
+          gameData.desarrollador,
+          gameData.plataformas
+        ]
+      );
+      
+      console.log('Resultado inserción:', result);
+      return result.insertId;
+    } catch (error) {
+      console.error('Error en createGame de gameAccess:', error);
+      throw error;
+    }
+  },
+  
+  associateGameWithUser: async (userId, gameId) => {
+    try {
+      console.log('Asociando juego', gameId, 'con usuario', userId);
+      await db.query(
+        'INSERT INTO biypgq3fbzz9f3p2sfgs.listas_juegos (usuario_id, juego_id) VALUES (?, ?)',
+        [userId, gameId]
+      );
+      console.log('Asociación exitosa');
+    } catch (error) {
+      console.error('Error al asociar juego con usuario:', error);
+      throw error;
+    }
+  },
+
+  getGameById: async (gameId) => {
+    try {
+      const [games] = await db.query(
+        'SELECT * FROM biypgq3fbzz9f3p2sfgs.juego WHERE id = ?',
+        [gameId]
+      );
+      return games[0];
+    } catch (error) {
+      console.error('Error al obtener juego por ID:', error);
+      throw error;
+    }
+  },
+
+  updateGame: async (gameId, gameData) => {
+    try {
+      await db.query(
+        'UPDATE biypgq3fbzz9f3p2sfgs.juego SET nombre = ?, portada = ?, descripcion = ?, desarrollador = ?, plataformas = ? WHERE id = ?',
+        [
+          gameData.nombre,
+          gameData.portada || null,
+          gameData.descripcion,
+          gameData.desarrollador,
+          gameData.plataformas,
+          gameId
+        ]
+      );
+    } catch (error) {
+      console.error('Error al actualizar juego:', error);
+      throw error;
+    }
+  },
+
+  deleteGame: async (userId, gameId) => {
+    try {
+      await db.query(
+        'DELETE FROM biypgq3fbzz9f3p2sfgs.listas_juegos WHERE usuario_id = ? AND juego_id = ?',
+        [userId, gameId]
+      );
+      // Opcionalmente, podrías también eliminar el juego si no está asociado con otros usuarios
+    } catch (error) {
+      console.error('Error al eliminar juego:', error);
+      throw error;
+    }
   }
 };
 
-const getUserIdFromDB = async (nombreUsuario, email) => {
-  try {
-    console.log('Parámetros recibidos para la consulta:', { nombreUsuario, email }); // Depuración
-
-    const [rows] = await pool.query(
-      `SELECT id FROM usuario WHERE nombre_usuario = ? AND email = ? LIMIT 1`,
-      [nombreUsuario, email]
-    );
-
-    console.log('Resultado de la consulta:', rows); // Depuración
-    return rows.length > 0 ? rows[0].id : null; // Devuelve el ID o null si no se encuentra
-  } catch (error) {
-    console.error('Error al consultar el ID del usuario:', error);
-    throw error;
-  }
-};
-
-
-module.exports = { getGamesByUser,getUserIdFromDB };
-
+module.exports = gameAccess;
