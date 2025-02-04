@@ -33,13 +33,13 @@ const Register = () => {
       setError('');
 
       const userData = {
+        nombre_usuario: formData.username,
         email: formData.email,
-        password: formData.password,
-        nombreUsuario: formData.username,
-        fotoPerfil: null
+        foto_perfil: null,
+        contrasena: formData.password,
       };
 
-      const response = await fetch('http://localhost:3001/api/auth/register', {
+      const response = await fetch('http://localhost:3000/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -53,10 +53,9 @@ const Register = () => {
         throw new Error(data.message || 'Error en el registro');
       }
 
-      if (data.success) {
         alert('Usuario registrado exitosamente');
         navigate('/login');
-      }
+     
     } catch (error) {
       setError(error.message || 'Error al registrar usuario');
     } finally {

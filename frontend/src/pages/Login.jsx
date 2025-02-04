@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 
+
 const Login = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -13,8 +14,9 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
 
 
+
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault();  
 
     if (!formData.username || !formData.password) {
       setError('Todos los campos son obligatorios');
@@ -25,36 +27,51 @@ const Login = () => {
       setLoading(true);
       setError('');
 
-      const response = await fetch('http://localhost:3001/api/auth/login', {
+      const response = await fetch('http://localhost:3000/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          username: formData.username,
-          password: formData.password
+          email: formData.username,
+          contrasena: formData.password
         })
       });
 
+      
+
       const data = await response.json();
+
+      
 
       if (!response.ok) {
         throw new Error(data.message || 'Error en el inicio de sesión');
       }
 
-      if (data.success) {
+
+     
+        
         // Guardar datos completos del usuario
         const userData = {
-            uid: data.user.uid,
-            nombreUsuario: data.user.displayName,
-            email: data.user.email,
-            fotoPerfil: data.user.photoURL || '/default-avatar.png',
-            dbId: data.user.dbId  // Agregar el ID de la base de datos
+            id: data.id,
+            nombreUsuario: data.nombre_usuario,
+            email: data.email,
+            fotoPerfil: data.foto_perfil || '/default-avatar.png',
+            token: data.token
         };
+
+  
+        
+        console.log('Token recibido:', data.token);
+
+        
         localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('isAuthenticated', 'true');
         navigate('/home');
-    }
+
+        
+
+  
     
     } catch (error) {
       setError(error.message || 'Credenciales inválidas');
@@ -76,7 +93,7 @@ const Login = () => {
           <div>
             <input
               type="text"
-              placeholder="Usuario"
+              placeholder="Email"
               className="w-full bg-gray-700 text-white p-3 rounded-lg focus:ring-2 focus:ring-cyan-400 outline-none"
               value={formData.username}
               onChange={(e) => setFormData({...formData, username: e.target.value})}
@@ -118,14 +135,6 @@ const Login = () => {
             disabled={loading}
           >
             Regístrate
-          </button>
-        </p>
-        <p className="text-gray-400 text-center mt-2">
-          <button
-            onClick={() => navigate('/reset-password')}
-            className="text-cyan-400 hover:text-cyan-300"
-          >
-            ¿Olvidaste tu contraseña?
           </button>
         </p>
 
