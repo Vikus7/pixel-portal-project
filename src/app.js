@@ -2,29 +2,19 @@ const express = require('express');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const path = require('path');
 const connectDB = require('./config/database');
 const socketConfig = require('./config/socket');
 const logger = require('./utils/logger');
 
-// Load environment variables
 require('dotenv').config();
 
-// Initialize express
 const app = express();
 const httpServer = createServer(app);
 
-// Configure CORS
-app.use(cors({
-    origin: '*',
-    credentials: true
-}));
-
-// Socket.IO setup with CORS
+// Configurar CORS para aceptar solo orígenes permitidos
 const io = new Server(httpServer, {
     cors: {
-        origin: '*',
-        methods: ['GET', 'POST'],
+        origin: process.env.ALLOWED_ORIGINS?.split(','),
         credentials: true
     }
 });
@@ -33,54 +23,29 @@ const io = new Server(httpServer, {
 connectDB();
 
 // Middleware
+app.use(cors({
+    origin: process.env.ALLOWED_ORIGINS?.split(','),
+    credentials: true
+}));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from public directory
-app.use(express.static(path.join(__dirname, '../public')));
-
-// Initialize WebSocket
-socketConfig(io);
-
-// Basic health check route
+// Health check
 app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'ok', message: 'Chat service is running' });
+    res.status(200).json({ status: 'ok' });
 });
 
-// Debug route to check messages
-app.get('/api/debug/messages', async (req, res) => {
-    try {
-        const Message = require('./models/message');
-        const messages = await Message.find()
-            .sort({ timestamp: -1 })
-            .limit(20);
-        
-        res.json({
-            success: true,
-            count: messages.length,
-            messages: messages
-        });
-    } catch (error) {
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
-        });
-    }
-});
+// Configurar WebSocket
+socketConfig(io);
 
 // Error handling
 app.use((err, req, res, next) => {
-    logger.error('Server error:', err);
-    res.status(500).json({
-        status: 'error',
-        message: process.env.NODE_ENV === 'production' 
-            ? 'Internal server error' 
-            : err.message
-    });
+    logger.error(err.stack);
+    res.status(500).json({ message: 'Internal server error' });
 });
 
-// Start server
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
-    logger.info(`Server running on port ${PORT}`);
+    logger.info(`Chat service running on port ${PORT}`);
 });
+
+module.exports = app;
