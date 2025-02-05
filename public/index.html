@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat Global - Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.js"></script>
+    <style>
+        .chat-container { 
+            max-width: 600px; 
+            margin: 20px auto; 
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .messages { 
+            height: 400px; 
+            overflow-y: scroll; 
+            border: 1px solid #ccc; 
+            padding: 10px; 
+            margin-bottom: 10px; 
+        }
+        .message { 
+            margin: 5px 0; 
+            padding: 8px;
+            border-radius: 5px;
+        }
+        .message.sent { 
+            background: #e3f2fd; 
+            margin-left: 20px; 
+        }
+        .message.received { 
+            background: #f5f5f5; 
+            margin-right: 20px; 
+        }
+        .input-container { 
+            display: flex; 
+            gap: 10px; 
+        }
+        input { flex: 1; padding: 8px; }
+        button { padding: 8px 15px; }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div id="messages" class="messages"></div>
+        <div class="input-container">
+            <input type="text" id="messageInput" placeholder="Escribe un mensaje...">
+            <button onclick="sendMessage()">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuración de Socket.IO
+        const socket = io('http://localhost:3000', {
+            withCredentials: true,
+            auth: {
+                token: 'test-token'
+            }
+        });
+
+        // Eventos de conexión
+        socket.on('connect', () => {
+            console.log('Conectado al servidor');
+            socket.emit('join_room', { roomId: 'global' });
+        });
+
+        socket.on('connect_error', (error) => {
+            console.error('Error de conexión:', error);
+        });
+
+        // Manejar mensajes nuevos
+        socket.on('new_message', (message) => {
+            console.log('Nuevo mensaje recibido:', message);
+            addMessageToUI(message);
+        });
+
+        // Manejar historial
+        socket.on('room_history', (data) => {
+            console.log('Historial recibido:', data);
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML = '';
+            data.messages.forEach(message => addMessageToUI(message));
+        });
+
+        function addMessageToUI(message) {
+            const messagesDiv = document.getElementById('messages');
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${message.sender.id === socket.id ? 'sent' : 'received'}`;
+            messageElement.innerHTML = `
+                <strong>${message.sender.username}:</strong> 
+                ${message.content}
+                <small style="display: block; font-size: 0.8em; color: #666;">
+                    ${new Date(message.timestamp).toLocaleTimeString()}
+                </small>
+            `;
+            messagesDiv.appendChild(messageElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+            
+            if (content) {
+                console.log('Enviando mensaje:', content);
+                socket.emit('send_message', {
+                    content,
+                    roomId: 'global'
+                });
+                input.value = '';
+            }
+        }
+
+        // Enviar mensaje con Enter
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
